@@ -1,6 +1,7 @@
 # bb-tools — Bug Bounty Toolkit
 
-Four tools built for GraphQL bug bounty hunting, especially P1/P2 IDOR and recon.
+Nine tools built for bug bounty hunting — GraphQL IDOR/recon, plus general
+web recon (takeovers, CORS, content discovery, security headers).
 
 ## Tools
 
@@ -73,6 +74,44 @@ python bb_recon.py shop.lululemon.com --js --cors -o lululemon_recon.json
 python bb_recon.py target.com --http
 ```
 
+### 5. `ssrf_webhook_tester.py` — Webhook SSRF Prober
+Spins up a webhook.site catcher, fires internal/cloud-metadata payloads at a webhook-creation endpoint, confirms live outbound delivery, cross-checks source IPs against a target's published IP allowlist.
+```bash
+python ssrf_webhook_tester.py catcher
+python ssrf_webhook_tester.py probe https://target.com/api/v2/webhooks --catcher-url <url>
+python ssrf_webhook_tester.py check <catcher-id>
+python ssrf_webhook_tester.py verify-ips <catcher-id> https://target.com/api/v2/public-ip-list
+python ssrf_webhook_tester.py full https://target.com/api/v2/webhooks   # one-shot: catcher + probe + check
+```
+
+### 6. `subdomain_takeover.py` — Subdomain Takeover Checker
+Finds dangling CNAMEs pointing at unclaimed third-party services (GitHub Pages, Heroku, S3, Azure, Shopify, Netlify, etc.) via `dig` + provider error-page fingerprints.
+```bash
+python subdomain_takeover.py old-blog.target.com
+python subdomain_takeover.py -i subdomains.txt -o takeover_results.json
+```
+
+### 7. `cors_scanner.py` — CORS Misconfiguration Scanner
+Sends a random "evil" Origin and the `null` origin at each URL, flags reflected/wildcard ACAO combined with `Access-Control-Allow-Credentials: true`.
+```bash
+python cors_scanner.py https://api.target.com/v1/data
+python cors_scanner.py -i endpoints.txt -o cors_results.json
+```
+
+### 8. `content_discovery.py` — Content/Directory Discovery
+ffuf/dirsearch-style path brute forcer with soft-404 baseline detection to cut false positives.
+```bash
+python content_discovery.py https://target.com
+python content_discovery.py https://target.com -w custom_wordlist.txt -o found.json
+```
+
+### 9. `security_headers.py` — Security Headers Scanner
+Checks for missing/weak HSTS, CSP, X-Frame-Options, etc. and cookie flags (HttpOnly/Secure/SameSite) across one or more URLs.
+```bash
+python security_headers.py https://target.com
+python security_headers.py -i endpoints.txt -o headers_results.json
+```
+
 ## Workflow for IDOR hunting
 
 ```
@@ -84,4 +123,15 @@ python bb_recon.py target.com --http
 6. python idor_tester.py idor <url> <query> \   # run IDOR test
      --vars-a '{"id":"A_ID"}' \
      --vars-b '{"id":"A_ID"}'                   # B uses A's ID
+```
+
+## Workflow for general web recon
+
+```
+1. python recon.py target.com --all               # (Pentest-tools) subdomains + ports + tech
+2. python subdomain_takeover.py -i subdomains.txt  # check every found subdomain for dangling CNAMEs
+3. python content_discovery.py https://target.com  # hidden paths, backups, debug endpoints
+4. python security_headers.py https://target.com   # missing HSTS/CSP/cookie flags
+5. python cors_scanner.py https://api.target.com    # CORS misconfig on any API endpoints found
+6. python ssrf_webhook_tester.py full <webhook-endpoint>  # if a webhook-config feature exists
 ```
