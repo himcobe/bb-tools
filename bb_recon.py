@@ -170,7 +170,7 @@ def check_cors(graphql_url: str) -> dict:
 
 def main():
     parser = argparse.ArgumentParser(description="Bug bounty recon — GraphQL discovery + WAF + JS query mining")
-    parser.add_argument("domain", help="Target domain (e.g. shop.lululemon.com)")
+    parser.add_argument("domain", help="Target domain (e.g. shop.target.com)")
     parser.add_argument("--https", action="store_true", default=True, help="Use HTTPS (default)")
     parser.add_argument("--http", action="store_true", help="Use HTTP")
     parser.add_argument("--js", action="store_true", help="Hunt JS bundles for GraphQL operation names")
